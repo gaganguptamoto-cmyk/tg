@@ -1,0 +1,141 @@
+name: Build APK
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Project banao
+        run: |
+          mkdir www && cp index.html www/
+          echo '{"name":"tg","private":true}' > package.json
+          echo '{"appId":"com.tradingguru.app","appName":"Trading Guru","webDir":"www"}' > capacitor.config.json
+          npm i @capacitor/core @capacitor/cli @capacitor/android
+          npx cap add android
+          npx cap sync android
+      - name: Widget jodo
+        run: |
+          J=android/app/src/main/java/com/tradingguru/app
+          RES=android/app/src/main/res
+          mkdir -p $RES/layout $RES/drawable $RES/xml
+          cat > $J/MainActivity.java <<'EOF'
+          package com.tradingguru.app;
+          import android.os.Bundle;
+          import com.getcapacitor.BridgeActivity;
+          public class MainActivity extends BridgeActivity {
+            @Override public void onCreate(Bundle b) {
+              registerPlugin(WidgetBridge.class);
+              super.onCreate(b);
+            }
+          }
+          EOF
+          cat > $J/WidgetBridge.java <<'EOF'
+          package com.tradingguru.app;
+          import android.content.Context;
+          import android.content.SharedPreferences;
+          import com.getcapacitor.Plugin;
+          import com.getcapacitor.PluginCall;
+          import com.getcapacitor.PluginMethod;
+          import com.getcapacitor.annotation.CapacitorPlugin;
+          @CapacitorPlugin(name = "WidgetBridge")
+          public class WidgetBridge extends Plugin {
+            @PluginMethod
+            public void update(PluginCall call) {
+              Context c = getContext();
+              SharedPreferences.Editor e = c.getSharedPreferences("tg", Context.MODE_PRIVATE).edit();
+              e.putString("eq", call.getString("eq", "--"));
+              e.putString("dp", call.getString("dp", ""));
+              e.putBoolean("up", Boolean.TRUE.equals(call.getBoolean("up", true)));
+              e.putString("tm", call.getString("tm", ""));
+              e.putString("rows", call.getString("rows", ""));
+              e.apply();
+              TGWidget.refreshAll(c);
+              call.resolve();
+            }
+          }
+          EOF
+          cat > $J/TGWidget.java <<'EOF'
+          package com.tradingguru.app;
+          import android.app.PendingIntent;
+          import android.appwidget.AppWidgetManager;
+          import android.appwidget.AppWidgetProvider;
+          import android.content.ComponentName;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.content.SharedPreferences;
+          import android.widget.RemoteViews;
+          public class TGWidget extends AppWidgetProvider {
+            @Override public void onUpdate(Context c, AppWidgetManager m, int[] ids) {
+              for (int id : ids) m.updateAppWidget(id, build(c));
+            }
+            static RemoteViews build(Context c) {
+              SharedPreferences p = c.getSharedPreferences("tg", Context.MODE_PRIVATE);
+              RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_tg);
+              v.setTextViewText(R.id.w_eq, "Rs " + p.getString("eq", "--"));
+              v.setTextViewText(R.id.w_dp, p.getString("dp", "App kholo"));
+              v.setTextColor(R.id.w_dp, p.getBoolean("up", true) ? 0xFF35C27A : 0xFFFF6B60);
+              v.setTextViewText(R.id.w_tm, p.getString("tm", ""));
+              v.setTextViewText(R.id.w_rows, p.getString("rows", ""));
+              PendingIntent pi = PendingIntent.getActivity(c, 0, new Intent(c, MainActivity.class),
+                  PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+              v.setOnClickPendingIntent(R.id.w_root, pi);
+              return v;
+            }
+            static void refreshAll(Context c) {
+              AppWidgetManager m = AppWidgetManager.getInstance(c);
+              for (int id : m.getAppWidgetIds(new ComponentName(c, TGWidget.class))) m.updateAppWidget(id, build(c));
+            }
+          }
+          EOF
+          cat > $RES/layout/widget_tg.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:id="@+id/w_root" android:layout_width="match_parent" android:layout_height="match_parent"
+            android:orientation="vertical" android:padding="12dp" android:background="@drawable/w_bg">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+              android:text="Trading Guru - Live" android:textColor="#97A3B3" android:textSize="12sp"/>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+              <TextView android:id="@+id/w_eq" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+                android:textColor="#EEF1F5" android:textSize="22sp" android:textStyle="bold"/>
+              <TextView android:id="@+id/w_dp" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:textSize="15sp" android:textStyle="bold"/>
+            </LinearLayout>
+            <TextView android:id="@+id/w_tm" android:layout_width="wrap_content" android:layout_height="wrap_content"
+              android:textColor="#97A3B3" android:textSize="11sp"/>
+            <TextView android:id="@+id/w_rows" android:layout_width="match_parent" android:layout_height="wrap_content"
+              android:layout_marginTop="4dp" android:textColor="#EEF1F5" android:textSize="12sp"/>
+          </LinearLayout>
+          EOF
+          cat > $RES/drawable/w_bg.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+            <solid android:color="#181E26"/><corners android:radius="18dp"/>
+          </shape>
+          EOF
+          cat > $RES/xml/tg_widget_info.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+            android:minWidth="250dp" android:minHeight="110dp" android:updatePeriodMillis="1800000"
+            android:initialLayout="@layout/widget_tg" android:resizeMode="horizontal|vertical"
+            android:widgetCategory="home_screen"/>
+          EOF
+          sed -i 's#</application>#<receiver android:name=".TGWidget" android:exported="true"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/tg_widget_info"/></receiver></application>#' android/app/src/main/AndroidManifest.xml
+      - name: APK banao
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TradingGuru-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          
