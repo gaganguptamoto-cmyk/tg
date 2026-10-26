@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trading Guru - Real Simulator</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#14181f;--mu:#5f6b7a;--bd:#e1e5ea;--ac:#2557d6;--up:#0f9d58;--dn:#d93025;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1318;--card:#181e26;--tx:#eef1f5;--mu:#97a3b3;--bd:#29313c;--ac:#6b93ff;--up:#35c27a;--dn:#ff6b60;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1318;--card:#181e26;--tx:#eef1f5;--mu:#97a3b3;--bd:#29313c;--ac:#6b93ff;--up:#35c27a;--dn:#ff6b60;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;padding-bottom:70px}
+main{max-width:640px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:4px 0 2px}h2{font-size:17px;margin:0 0 8px}
+.mu{color:var(--mu);font-size:13px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin:10px 0}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.sp{justify-content:space-between}
+button{font:inherit;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:10px 14px;cursor:pointer}
+button.p{background:var(--ac);color:#fff;border-color:var(--ac)}button.b{background:var(--up);color:#fff;border-color:var(--up)}button.s{background:var(--dn);color:#fff;border-color:var(--dn)}
+.g{flex:1}
+input{font:inherit;width:100%;padding:9px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx)}
+label{font-size:12px;color:var(--mu);display:block;flex:1;min-width:90px}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--bd);display:flex;padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{font-size:12px;flex:1;border:0;border-radius:0;padding:14px 4px;background:none;color:var(--mu)}nav button.on{color:var(--ac);font-weight:600}
+.bar{height:8px;background:var(--bd);border-radius:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ac)}
+.up{color:var(--up)}.dn{color:var(--dn)}
+.lsn{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--bd);cursor:pointer}.lsn:last-child{border:0}
+.opt{display:block;width:100%;text-align:left;margin:6px 0}
+.ok{border-color:var(--up)!important}.no{border-color:var(--dn)!important}
+canvas{width:100%;height:300px;display:block}
+input[type=range]{padding:0}svg{display:block}.ln{stroke:var(--mu);stroke-dasharray:3 3}.lu{stroke:var(--up)}.ld{stroke:var(--dn)}.lp{stroke:var(--tx)}.lm{stroke:var(--ac)}.gu{fill:var(--up);stroke:var(--up)}.gd{fill:var(--dn);stroke:var(--dn)}.tx text{fill:var(--tx);font-size:11px;stroke:none}
+.tbl{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:6px 4px;text-align:right;border-bottom:1px solid var(--bd);white-space:nowrap}th{color:var(--mu);font-weight:500}td:first-child,th:first-child{text-align:left}
+.chips{flex-wrap:nowrap;overflow-x:auto;gap:6px}.sy{flex:1;min-width:74px;padding:8px 4px;text-align:center;font-size:13px;line-height:1.3}.sy.on{border-color:var(--ac);background:var(--bg);font-weight:600}
+</style>
+</head>
+<body>
+<main id="v"></main>
+<nav><button data-t="trade">Practice</button><button data-t="live">🔴 Live</button><button data-t="tutor">Tutor</button><button data-t="jr">Journal</button><button data-t="wg">Widget</button></nav>
+<script>
+const L=[
+{t:"Stock market kya hai",b:"Stock kisi company ka chhota hissa hota hai. Price demand aur supply se chalta hai: jab khareedne wale zyada, price upar; bechne wale zyada, price neeche.<br><br><b>Trading</b> = chhote time me price move se kamana. <b>Investing</b> = saalon ke liye hold. Zyada tar beginners isliye haarte hain ki bina plan ke trade karte hain, market ki wajah se nahi.",q:"Stock ka price kya decide karta hai?",o:["Company ka owner","Demand aur supply","Sirf SEBI"],a:1},
+{t:"Candlestick padhna",b:"Har candle 4 price batati hai: <b>Open, High, Low, Close</b>. Close, open se upar = green (buyers jeete). Close, open se neeche = red (sellers jeete).<br><br>Lambi upar wali wick ka matlab: price upar gaya par wahan se wapas gira (bechne wale mile). Lambi neeche wali wick: neeche se khareedar aaye.",q:"Candle ka close, open se upar ho to?",o:["Red candle","Green candle","Doji"],a:1},
+{t:"Trend aur Support/Resistance",b:"<b>Uptrend</b>: higher highs aur higher lows. <b>Downtrend</b>: lower highs aur lower lows. Sideways: koi direction nahi.<br><br><b>Support</b>: woh level jahan se price baar baar upar palta. <b>Resistance</b>: jahan se baar baar neeche. Simple rule: trend ke saath trade karo, uske khilaf nahi.",q:"Higher highs aur higher lows kya dikhate hain?",o:["Downtrend","Sideways","Uptrend"],a:2},
+{t:"Risk management (sabse zaroori)",b:"Ek trade me capital ka sirf <b>1-2%</b> risk karo. Quantity ka formula:<br><b>Qty = (Capital × Risk%) ÷ (Entry − Stop loss)</b><br><br>Example: Capital 1,00,000, risk 1% = 1,000. Entry 250, SL 245 → 1,000 ÷ 5 = <b>200 shares</b>. SL lage to sirf 1,000 ka loss. 10 lagatar loss bhi account khatam nahi karenge.",q:"Capital 1,00,000, risk 1%, entry 500, SL 490. Qty kitni?",o:["50","100","200"],a:1},
+{t:"Stop loss aur Risk:Reward",b:"Stop loss woh level hai jahan tumhara trade galat sabit ho jata hai. Entry se pehle hi tay karo, baad me hatana mat.<br><br>Risk:Reward 1:2 ka matlab 1 rupya risk, 2 rupye ka target. Is se 40% trades jeetne par bhi profit ho sakta hai. Target hamesha risk ka kam se kam 2 guna rakho.",q:"RR 1:2 hai. 10 trades me 4 jeete, 6 haare (har loss 1R). Result?",o:["-2R","0R","+2R"],a:2},
+{t:"Indicators: MA aur RSI",b:"<b>20-MA</b> pichhli 20 candles ke close ka average hai. Price MA ke upar = momentum strong, neeche = weak.<br><br><b>RSI</b> 0 se 100 ka number hai. 70 se upar overbought, 30 se neeche oversold. Ye signal nahi, sirf context hai: strong trend me RSI kai din 70+ rehta hai. Indicator akele par kabhi trade mat lo, trend aur levels ke saath dekho.",q:"RSI 75 ka sahi matlab?",o:["Pakka girega, sell karo","Overbought zone, par trend strong ho to upar bhi chal sakta hai","Pakka badhega"],a:1},
+{t:"Trading psychology",b:"Dar aur lalach sabse bade dushman hain. Teen galtiyan jo account khatam karti hain: <b>revenge trading</b> (loss recover karne ke liye bada trade), <b>stop loss hatana</b>, aur <b>overtrading</b>.<br><br>Upay: trade se pehle plan likho (entry, SL, target), uspar chalo, aur har trade journal me likho. Real paise lagane se pehle kam se kam 50 practice trades karo. Ye shiksha hai, financial advice nahi.",q:"Loss ke turant baad bada trade lekar recover karna kya hai?",o:["Smart strategy","Revenge trading","Risk management"],a:1},
+{t:"Order types aur charges",b:"<b>Market order</b>: turant current price par. <b>Limit order</b>: sirf tumhari tay ki hui price (ya behtar) par. <b>SL order</b>: price trigger level chhute to position band.<br><br>Har trade par brokerage, tax aur charges lagte hain. Bahut chhote profit wale trades me charges sab kha jate hain, isliye RR is hisaab se rakho ki charges ke baad bhi fayda bache.",q:"Tumhe sirf 250 par hi khareedna hai, usse upar nahi. Konsa order?",o:["Market order","Limit order","Koi bhi"],a:1},
+{t:"Volume aur chart patterns",b:"<b>Volume</b> = kitne shares bike. Price move ke saath volume badhe to move me dum hai. <b>Double bottom</b> (W): price do baar same neeche level se palta, phir neckline todta hai, tezi ka sanket. <b>Double top</b> (M) iska ulta hai.<br><br>Breakout tabhi bharosemand hai jab volume bhi bade. Bina volume ka breakout aksar fail hota hai.",q:"Breakout hua par volume bahut kam hai. Iska matlab?",o:["Bahut strong signal","Kuch farak nahi","Kamzor ya fake breakout ho sakta hai"],a:2},
+{t:"Apna trading plan",b:"Plan likho: kya trade karoge, entry rule, stop loss rule, risk % per trade, din me max trades, aur <b>din ka max loss</b> (jaise capital ka 3%). Us din limit chhoo li to screen band.<br><br>Har trade se pehle neeche wali checklist poori karo. Plan ka kaam hai ki dar aur lalach ke time tum soch ke nahi, rule se kaam karo.",q:"Din ka max loss rule kyun zaroori hai?",o:["Zyada trade karne ke liye","Emotional galtiyon aur bade loss se bachne ke liye","Brokerage bachane ke liye"],a:1}
+];
+const $=s=>document.querySelector(s);
+const LEV=5,N=75,SQ=72,DL=.03,HS=.0004;
+const SY={SIMBANK:[1800,.0012,1,.8],SIMTECH:[1450,.0015,1.2,1],SIMAUTO:[900,.0017,1.1,.6],SIMPHARMA:[650,.0016,.5,.5],SIMENERGY:[320,.002,1.5,1.4],SIMINFRA:[540,.0016,1.3,.9],SIMFMCG:[2400,.001,.5,.4],SIMTELCO:[210,.0019,1,1.6],SIMMETAL:[760,.002,1.6,1.1],SIMRETAIL:[1250,.0015,.9,.7]};
+const rd=x=>Math.round(x*20)/20,tm=i=>{const m=555+5*i;return (m/60|0)+":"+String(m%60).padStart(2,"0")};
+function randn(){return Math.sqrt(-2*Math.log(1-Math.random()))*Math.cos(2*Math.PI*Math.random())}
+let S=null,P,V,ST=null,jl="P";try{ST=JSON.parse(localStorage.getItem("tg3"))}catch(e){}
+function tick(gap,hist){const M=S.mk;if(--M.n<=0)Object.assign(M,{d:(Math.random()-.5)*.0016,v:.7+Math.random()*1.2,n:25+(Math.random()*40|0)});
+const mr=M.d+M.v*.0008*randn(),ks=Object.keys(SY),nw=Math.random()<.012&&!hist?(Math.random()<.5?-1:1)*(.012+Math.random()*.02):0,ns=ks[Math.random()*ks.length|0];
+if(nw)S.news="📰 "+ns+(nw>0?" par badi positive khabar: tez uchhal":" par buri khabar: tez girawat");
+ks.forEach(k=>{const s=SY[k],a=S.y[k].m,p=a[a.length-1].c,v=s[1]*M.v,r=s[2]*mr+v*randn()+(k==ns?nw:0),o=rd(gap?p*(1+(Math.random()-.5)*.008+mr*3):p),c=rd(o*(1+r)),h=rd(Math.max(o,c)*(1+Math.abs(randn())*v*.4)),l=rd(Math.min(o,c)*(1-Math.abs(randn())*v*.4)),vo=Math.round(s[3]*1e4*(.6+Math.random()*.8)*(1+Math.abs(r)/v*.6)*(1+Math.abs(S.ci-37)/37));
+a.push({o,h:Math.max(h,o,c),l:Math.min(l,o,c),c,v:vo,n:hist?-1:S.ci});if(a.length>300)a.shift()})}
+function mk(){const y={};for(const k in SY)y[k]={m:[{o:SY[k][0],h:SY[k][0],l:SY[k][0],c:SY[k][0],v:0,n:-1}]};
+S={cash:100000,eq0:100000,day:1,ci:0,y,cur:"SIMBANK",pos:{},ord:[],tr:[],ok:{},mk:{d:.0002,v:1,n:40},lk:0,gp:0,nt:0,lt:0,lq:0,auto:0};for(let i=0;i<80;i++)tick(0,1)}
+function df(o){o.auto=0;Object.defineProperty(o,"m",{get(){return o.y[o.cur].m},enumerable:false,configurable:true});return o}
+if(ST&&ST.p&&ST.l&&ST.p.y.SIMRETAIL&&ST.l.y.SIMRETAIL){P=df(ST.p);V=df(ST.l)}else{mk();P=df(S);mk();V=df(S);V.cur="SIMTECH"}
+S=P;
+let lw=0;function wgPush(){const b=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.WidgetBridge;if(!b||Date.now()-lw<10000)return;lw=Date.now();const s0=S;S=V;try{const e=eqty(),d=e-V.eq0,rows=Object.keys(SY).slice(0,4).map(k=>{const a=V.y[k].m,z=a[a.length-1],q=a[a.length-1-V.ci]||z,p=(z.c/q.c-1)*100;return k.slice(3)+" ₹"+f(z.c)+" "+(p>=0?"+":"")+p.toFixed(1)+"%"}).join("\n");b.update({eq:f(e),dp:(d>=0?"+":"-")+"₹"+f(Math.abs(d)),up:d>=0,tm:"Din "+V.day+" "+tm(V.ci),rows})}catch(x){}S=s0}
+function save(){try{localStorage.setItem("tg3",JSON.stringify({p:P,l:V}))}catch(e){}wgPush()}
+const f=n=>n.toLocaleString("en-IN",{maximumFractionDigits:2});
+let tab="trade",cur=-1,msg="",rs=0,AT=null;
+function last(){return S.m[S.m.length-1]}
+function sma(n){const a=S.m.slice(-n);return a.reduce((s,x)=>s+x.c,0)/a.length}
+function atr(){const a=S.m.slice(-14);return a.reduce((s,x)=>s+x.h-x.l,0)/a.length}
+function rsi(){const a=S.m.slice(-15);let g=0,l=0;for(let i=1;i<a.length;i++){const d=a[i].c-a[i-1].c;d>0?g+=d:l-=d}return l===0?100:100-100/(1+g/l)}
+function ur(k){const p=S.pos[k],px=S.y[k].m.at(-1).c;return (p.side=="B"?px-p.e:p.e-px)*p.q}
+function eqty(){return S.cash+Object.keys(S.pos).reduce((s,k)=>s+ur(k),0)}
+function used(){return Object.values(S.pos).reduce((s,p)=>s+p.q*p.e/LEV,0)}
+function fees(b,s,q){const t=(b+s)*q,br=Math.min(20,b*q*.0003)+Math.min(20,s*q*.0003),tx=t*.0000297,sb=t*1e-6;return br+s*q*.00025+tx+.18*(br+tx+sb)+sb+b*q*.00003}
+function openP(k,o,e,fr){S.pos[k]={side:o.side,q:o.q,e,sl:o.sl,sl0:o.sl,tp:o.tp,rr:Math.abs(o.tp-e)/Math.abs(e-o.sl),fresh:fr,rv:(S.lt&&S.nt-S.lt<=3&&o.q>S.lq)?1:0}}
+function closeT(k,px,why){const p=S.pos[k],L=p.side=="B",b=L?p.e:px,s=L?px:p.e,g=(s-b)*p.q,ch=fees(b,s,p.q),pnl=g-ch;
+S.cash+=pnl;S.tr.unshift({k,side:p.side,q:p.q,e:p.e,x:px,g,ch,pnl,r:pnl/(Math.abs(p.e-p.sl0)*p.q),why,rr:p.rr,d:S.day,rv:p.rv});if(pnl<0){S.lt=S.nt;S.lq=p.q}delete S.pos[k];
+msg=k+" band ("+why+"): "+(pnl>=0?"+":"")+"₹"+f(pnl)+" net (charges ₹"+f(ch)+")"}
+function step(){const gp=S.gp;S.gp=0;S.news="";S.nt++;tick(gp);
+for(const k in S.y){const c=S.y[k].m.at(-1);
+S.ord=S.ord.filter(o=>{if(o.k!=k)return true;if(S.pos[k])return false;if(!(o.side=="B"?c.l<=o.px:c.h>=o.px))return true;openP(k,o,o.side=="B"?Math.min(o.px,c.o):Math.max(o.px,c.o),1);msg="Limit order fill hua: "+k+" "+o.side+" "+o.q;return false});
+const p=S.pos[k];if(!p)continue;if(p.fresh){p.fresh=0;continue}
+const L=p.side=="B";let px=0,w="";
+if(L){if(c.o<=p.sl){px=c.o;w="Stop loss (gap)"}else if(c.l<=p.sl){px=p.sl;w="Stop loss"}else if(c.h>=p.tp){px=Math.max(p.tp,c.o);w="Target"}}
+else{if(c.o>=p.sl){px=c.o;w="Stop loss (gap)"}else if(c.h>=p.sl){px=p.sl;w="Stop loss"}else if(c.l<=p.tp){px=Math.min(p.tp,c.o);w="Target"}}
+if(px&&w[0]=="S")px=rd(px*(L?1-HS:1+HS));
+if(!px&&S.ci+1>=SQ){px=c.c;w="Auto square-off 15:15"}
+if(px)closeT(k,px,w)}
+S.ci++;if(S.ci>=N){S.ci=0;S.day++;S.eq0=eqty();S.lk=0;S.ord=[];S.gp=1;if(!msg)msg="Naya din shuru. Overnight gap aa sakta hai."}
+else if(!S.lk&&eqty()-S.eq0<=-DL*S.eq0){S.lk=1;msg="⛔ Aaj ka max loss limit (3%) chhu gaya. Plan ke hisaab se aaj naya trade band."}}
+function nd(){let i=0;do{step();i++}while(S.ci!=0&&i<N+1)}
+function au(on,ms){clearInterval(AT);AT=null;S.auto=0;if(on){S.auto=1;AT=setInterval(()=>{const e=document.activeElement,fo=e&&e.matches("input,select");if(fo&&tab!="live")return;step();if(fo)draw();else render()},ms||600)}}
+function render(){document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t==tab));
+const sv={};["sl","tp","rk","lp","ot","ti"].forEach(i=>{const e=$("#"+i);if(e)sv[i]=e.value});
+$("#v").innerHTML=tab=="tutor"?vTut():tab=="wg"?vWg():tab=="jr"?vJr():vTrade();for(const i in sv)if($("#"+i))$("#"+i).value=sv[i];if(tab=="trade"||tab=="live"){draw();pv()}if(tab=="tutor")scrollTo(0,document.body.scrollHeight);save()}
+function sy(k){S.cur=k;msg="";render()}
+function plan(side){const k=S.cur,c=last(),sl=+$("#sl").value,tp=+$("#tp").value,rk=+$("#rk").value,lm=$("#ot").value=="L",e=lm?+$("#lp").value:rd(side=="B"?c.c*(1+HS+Math.random()*.0003):c.c*(1-HS-Math.random()*.0003));
+if(!sl||!tp||!e)return{err:"Stop loss aur target dono daalo (Limit me limit price bhi)."};
+if(side=="B"?!(sl<e&&tp>e):!(sl>e&&tp<e))return{err:side=="B"?"BUY me SL entry se neeche, target upar.":"SELL me SL entry se upar, target neeche."};
+if(!(rk>0&&rk<=3))return{err:"Risk % 0 se 3 ke beech rakho."};
+if(S.pos[k])return{err:"Is stock me position pehle se khuli hai."};
+if(lm&&(side=="B"?e>=c.c:e<=c.c))return{err:"Limit BUY current price se neeche, SELL upar rakho."};
+const d=Math.abs(e-sl),eq=eqty(),q=Math.min(Math.floor(eq*rk/100/d),Math.floor((eq-used())*LEV/e));
+if(q<1)return{err:"Quantity 1 se kam: SL paas rakho, risk badhao ya margin free karo."};
+return{k,side,e,sl,tp,q,rr:Math.abs(tp-e)/d,risk:q*d,mg:q*e/LEV}}
+function pv(){const o=$("#pv");if(!o)return;const e=+($("#ot").value=="L"?$("#lp").value:last().c),sd=+$("#sl").value<e?"B":"S",p=plan(sd);
+o.innerHTML=p.err?`<span class="mu">${p.err}</span>`:`Qty <b>${p.q}</b> · Risk <b class="dn">₹${f(p.risk)}</b> · RR <b>1:${p.rr.toFixed(1)}</b> · Margin ₹${f(p.mg)}`}
+function go(side){if(S.lk){msg="⛔ Aaj ka loss limit chhu gaya. Naya trade kal.";return render()}
+const p=plan(side);if(p.err){msg='<span class="dn">'+p.err+"</span>";return render()}
+if($("#ot").value=="L"){S.ord.push({k:p.k,side,px:p.e,q:p.q,sl:p.sl,tp:p.tp});msg="Limit order laga: "+p.side+" "+p.q+" @ ₹"+f(p.e)+" (fill hone tak intezaar)"}
+else{openP(p.k,p,p.e,0);msg="Market order fill: "+p.q+" @ ₹"+f(p.e)+" (spread+slippage ke saath), RR 1:"+p.rr.toFixed(1)+(p.rr<1.5?" ⚠ RR kam hai":"")}render()}
+function qf(d){const c=last().c,a=atr(),lm=$("#ot").value=="L",e=lm?+$("#lp").value||c:c;$("#sl").value=rd(e-d*a*1.5).toFixed(2);$("#tp").value=rd(e+d*a*3).toFixed(2);pv()}
+function be(k){const p=S.pos[k],c=last().c;if(p.side=="B"?c>p.e:c<p.e){p.sl=p.e;msg="SL entry par laya: ab ye trade me loss nahi (charges chhodkar)."}else msg="Pehle price tumhare favour me jana chahiye.";render()}
+function vTrade(){const k=S.cur,c=last(),A=S.m,q0=A[A.length-1-S.ci]||c,ch=(c.c/q0.c-1)*100,eq=eqty(),dp=eq-S.eq0;
+const chips=Object.keys(SY).map(s=>{const a=S.y[s].m,z=a[a.length-1],q=a[a.length-1-S.ci]||z,d=(z.c/q.c-1)*100;return `<button class="sy ${s==k?"on":""}" onclick="sy('${s}')">${s.slice(3)}<br><small class="${d>=0?"up":"dn"}">${d>=0?"+":""}${d.toFixed(1)}%</small></button>`}).join("");
+let h=`<div class="card"><div class="row sp"><b>${tab=="live"?"🔴 LIVE · ":""}Din ${S.day} · ${tm(S.ci)} IST</b><span class="mu">Auto square-off 15:15</span></div><div class="row sp" style="margin-top:6px"><div><div class="mu">Equity</div><b>₹${f(eq)}</b></div><div><div class="mu">Aaj ka P&amp;L</div><b class="${dp>=0?"up":"dn"}">${dp>=0?"+":""}₹${f(dp)}</b></div><div><div class="mu">Free margin</div><b>₹${f(eq-used())}</b></div></div>${S.lk?'<div class="dn" style="margin-top:6px">⛔ Daily loss limit hit: aaj naya trade band</div>':""}</div><div class="row chips">${chips}</div>`;
+h+=`<div class="card"><div class="row sp"><div><b>${k}</b><div class="mu">Bid ${f(c.c*(1-HS))} · Ask ${f(c.c*(1+HS))}</div></div><div style="text-align:right"><b style="font-size:20px">₹${f(c.c)}</b><div class="${ch>=0?"up":"dn"}">${ch>=0?"+":""}${ch.toFixed(2)}%</div></div></div><canvas id="cv"></canvas><div class="row sp mu"><span>20-MA ${f(sma(20))}</span><span>RSI ${rsi().toFixed(0)}</span><span>Vol ${f(c.v)}</span><span>ATR ${f(atr())}</span></div></div>`;
+h+=tab=="live"?LB():`<div class="row"><button class="p g" onclick="step();render()">Agli candle →</button><button class="g" onclick="for(let i=0;i<5;i++)step();render()">+5</button><button class="g" onclick="au(${S.auto?0:1});render()">${S.auto?"⏸ Roko":"▶ Auto"}</button><button class="g" onclick="nd();render()">Agla din ⏭</button></div>`;
+if(S.news)h+=`<div class="card">${S.news}</div>`;if(msg)h+=`<div class="card">${msg}</div>`;
+const ks=Object.keys(S.pos);if(ks.length)h+=`<div class="card"><h2>Open positions</h2>${ks.map(s=>{const p=S.pos[s],u=ur(s);return `<div style="padding:8px 0;border-bottom:1px solid var(--bd)"><div class="row sp"><b>${p.side=="B"?"BUY":"SELL"} ${s} ×${p.q} @ ${f(p.e)}</b><b class="${u>=0?"up":"dn"}">${u>=0?"+":""}₹${f(u)}</b></div><div class="row sp mu"><span>SL ${f(p.sl)}</span><span>Target ${f(p.tp)}</span></div><div class="row" style="margin-top:6px"><button class="g" onclick="be('${s}')">SL → entry</button><button class="s g" onclick="closeT('${s}',rd(S.y['${s}'].m.at(-1).c*(${p.side=="B"?"1-HS":"1+HS"})),'Manual exit');render()">Exit</button></div></div>`}).join("")}</div>`;
+if(S.ord.length)h+=`<div class="card"><h2>Pending orders</h2>${S.ord.map((o,i)=>`<div class="row sp"><span>${o.side} ${o.k} ×${o.q} limit ${f(o.px)}</span><button onclick="S.ord.splice(${i},1);render()">Cancel</button></div>`).join("")}</div>`;
+h+=`<div class="card"><h2>Naya order: ${k}</h2><div class="row"><label>Type<select id="ot" onchange="pv()" style="width:100%;padding:9px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--tx)"><option value="M">Market</option><option value="L">Limit</option></select></label><label>Limit price<input id="lp" type="number" step="0.05" inputmode="decimal" oninput="pv()"></label></div><div class="row" style="margin-top:6px"><label>Stop loss<input id="sl" type="number" step="0.05" inputmode="decimal" oninput="pv()"></label><label>Target<input id="tp" type="number" step="0.05" inputmode="decimal" oninput="pv()"></label><label>Risk %<input id="rk" type="number" value="1" step="0.5" inputmode="decimal" oninput="pv()"></label></div><div class="row" style="margin-top:8px"><button class="g" onclick="qf(1)">Auto SL/TP long (ATR)</button><button class="g" onclick="qf(-1)">Auto short</button></div><div id="pv" style="margin:8px 0"></div><div class="row"><button class="b g" onclick="go('B')">BUY</button><button class="s g" onclick="go('S')">SELL (short)</button></div><div class="mu" style="margin-top:8px">${LEV}x intraday margin. Spread, slippage, brokerage, STT, GST sab lagte hain. Market simulated hai (real nahi), maksad process seekhna hai.</div></div>`;return h}
+function vJr(){const t=S.tr,n=t.length,W=t.filter(x=>x.pnl>0),Ls=t.filter(x=>x.pnl<=0),tot=t.reduce((s,x)=>s+x.pnl,0),cg=t.reduce((s,x)=>s+x.ch,0),ar=n?t.reduce((s,x)=>s+x.r,0)/n:0,gw=W.reduce((s,x)=>s+x.pnl,0),gl=-Ls.reduce((s,x)=>s+x.pnl,0),pf=gl?(gw/gl).toFixed(2):(gw?"∞":"0"),ds=n?Math.round(t.filter(x=>x.rr>=2).length/n*100):0,rv=t.filter(x=>x.rv).length;
+let c=100000,pk=c,dd=0;t.slice().reverse().forEach(x=>{c+=x.pnl;pk=Math.max(pk,c);dd=Math.max(dd,(pk-c)/pk)});
+const cell=(a,b,cl)=>`<div><div class="mu">${a}</div><b class="${cl||""}">${b}</b></div>`;
+return `<h1>Trade journal</h1><div class="row"><button class="g ${jl=='P'?'p':''}" onclick="jl='P';nv('jr')">Practice</button><button class="g ${jl=='V'?'p':''}" onclick="jl='V';nv('jr')">Live</button></div><div class="card"><div class="row sp">${cell("Trades",n)}${cell("Win rate",n?Math.round(W.length/n*100)+"%":"0%")}${cell("Avg R",ar.toFixed(2))}${cell("Net P&L","₹"+f(tot),tot>=0?"up":"dn")}</div><div class="row sp" style="margin-top:10px">${cell("Profit factor",pf)}${cell("Max drawdown",(dd*100).toFixed(1)+"%","dn")}${cell("Charges","₹"+f(cg))}${cell("Avg W/L",W.length&&Ls.length?f(gw/W.length)+"/"+f(gl/Ls.length):"-")}</div><p class="mu">Plan discipline: <b>${ds}%</b> trades me RR 2+ tha. Revenge-style trades (loss ke turant baad bada size): <b class="${rv?"dn":"up"}">${rv}</b>. Target: 50+ trades, positive avg R, profit factor 1.5+.</p>${eq()}</div>
+<div class="card tbl">${n?`<table><tr><th>Din</th><th>Stock</th><th>Side</th><th>Qty</th><th>Entry</th><th>Exit</th><th>Kaise</th><th>Charges</th><th>Net</th></tr>${t.map(x=>`<tr><td>${x.d}</td><td>${x.k.slice(3)}</td><td>${x.side=="B"?"BUY":"SELL"}</td><td>${x.q}</td><td>${f(x.e)}</td><td>${f(x.x)}</td><td>${x.why.split(" ")[0]}</td><td>${f(x.ch)}</td><td class="${x.pnl>=0?"up":"dn"}">${f(x.pnl)}</td></tr>`).join("")}</table>`:"Abhi koi trade nahi. Practice tab me pehla trade lo."}</div><button class="s" onclick="rst()">${rs?"Pakka? Dobara dabao":"Sab reset karo"}</button>`}
+function rst(){if(!rs){rs=1;render();return}try{localStorage.removeItem("tg2")}catch(e){}location.reload()}
+function draw(){const cv=$("#cv");if(!cv)return;const dp=devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;cv.width=w*dp;cv.height=h*dp;const x=cv.getContext("2d");x.scale(dp,dp);
+const st=getComputedStyle(document.documentElement),g=n=>st.getPropertyValue(n).trim(),up=g("--up"),dn=g("--dn"),mu=g("--mu"),ac=g("--ac");
+const A=S.m,K=60,a=A.slice(-K),k=S.cur,p=S.pos[k],od=S.ord.filter(o=>o.k==k),pw=48,vh=40,off=K-a.length;
+let hi=Math.max(...a.map(z=>z.h)),lo=Math.min(...a.map(z=>z.l));const ex=[];if(p)ex.push(p.sl,p.tp,p.e);od.forEach(o=>ex.push(o.px,o.sl,o.tp));ex.forEach(v=>{hi=Math.max(hi,v);lo=Math.min(lo,v)});
+const pd=(hi-lo)*.04||1;hi+=pd;lo-=pd;const H=h-vh-4,Y=v=>4+(hi-v)/(hi-lo)*(H-8),cw=(w-pw)/K,mv=Math.max(...a.map(z=>z.v),1),X=i=>(off+i)*cw+cw/2;
+x.font="10px system-ui";
+for(let i=0;i<=4;i++){const v=lo+(hi-lo)*i/4,y=Y(v);x.strokeStyle=g("--bd");x.lineWidth=1;x.beginPath();x.moveTo(0,y);x.lineTo(w-pw,y);x.stroke();x.fillStyle=mu;x.fillText(v.toFixed(1),w-pw+4,y+3)}
+a.forEach((z,i)=>{const cx=X(i);if(z.n===0){x.strokeStyle=mu;x.setLineDash([2,3]);x.beginPath();x.moveTo(cx-cw/2,0);x.lineTo(cx-cw/2,h);x.stroke();x.setLineDash([])}
+x.strokeStyle=x.fillStyle=z.c>=z.o?up:dn;x.beginPath();x.moveTo(cx,Y(z.h));x.lineTo(cx,Y(z.l));x.stroke();const t=Y(Math.max(z.o,z.c)),b=Y(Math.min(z.o,z.c));x.fillRect(cx-cw*.35,t,cw*.7,Math.max(1,b-t));x.globalAlpha=.35;x.fillRect(cx-cw*.35,h-z.v/mv*vh,cw*.7,z.v/mv*vh);x.globalAlpha=1});
+x.strokeStyle=ac;x.lineWidth=1.5;x.beginPath();a.forEach((z,i)=>{const j=A.length-a.length+i,s=A.slice(Math.max(0,j-19),j+1),v=s.reduce((q,r)=>q+r.c,0)/s.length;i?x.lineTo(X(i),Y(v)):x.moveTo(X(i),Y(v))});x.stroke();
+const ln=(v,c,t)=>{x.strokeStyle=x.fillStyle=c;x.lineWidth=1;x.setLineDash([5,4]);x.beginPath();x.moveTo(0,Y(v));x.lineTo(w-pw,Y(v));x.stroke();x.setLineDash([]);x.fillText(t,4,Y(v)-3)};
+if(p){ln(p.e,mu,"ENTRY");ln(p.sl,dn,"SL");ln(p.tp,up,"TARGET")}od.forEach(o=>ln(o.px,ac,"LIMIT "+o.side));
+const lc=A[A.length-1].c;ln(lc,mu,"");x.fillStyle=ac;x.fillRect(w-pw,Y(lc)-8,pw,16);x.fillStyle="#fff";x.fillText(lc.toFixed(2),w-pw+3,Y(lc)+4)}
+function eq(){const t=S.tr.slice().reverse();if(t.length<2)return"";let c=100000;const p=[c];t.forEach(x=>{c+=x.pnl;p.push(c)});const mx=Math.max(...p),mn=Math.min(...p),Y=v=>90-(v-mn)/(mx-mn||1)*80,w=300/(p.length-1);return `<div class="mu">Equity curve (balance trade-by-trade)</div><svg viewBox="0 0 300 100" width="100%"><line class="ln" x1="0" x2="300" y1="${Y(100000)}" y2="${Y(100000)}"/><polyline fill="none" stroke-width="2" class="${c>=100000?"lu":"ld"}" points="${p.map((v,i)=>(i*w).toFixed(1)+","+Y(v).toFixed(1)).join(" ")}"/></svg>`}
+function nv(t){au(0);tab=t;msg="";rs=0;S=t=="live"||t=="wg"||(t=="jr"&&jl=="V")?V:P;if(t=="live"||t=="wg")au(1,(V.sp||3)*1000);render()}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>nv(b.dataset.t));
+function LB(){const sp=S.sp||3;return `<div class="row"><button class="g ${S.auto?"":"p"}" onclick="au(${S.auto?0:1},${sp*1000});render()">${S.auto?"⏸ Pause":"▶ Resume"}</button>${[1,3,5].map(x=>`<button class="g ${sp==x?"on":""}" style="${sp==x?"border-color:var(--ac);font-weight:600":""}" onclick="S.sp=${x};au(1,${x*1000});render()">${x}s/candle</button>`).join("")}</div>`}
+function vWg(){const e=eqty(),dp=e-S.eq0,rows=Object.keys(SY).map(k=>{const a=S.y[k].m,z=a[a.length-1],q=a[a.length-1-S.ci]||z,d=(z.c/q.c-1)*100;return `<div class="row sp" style="padding:3px 0"><span>${k.slice(3)}</span><span>₹${f(z.c)} <b class="${d>=0?"up":"dn"}">${d>=0?"+":""}${d.toFixed(2)}%</b></span></div>`}).join("");
+return `<div class="card"><div class="row sp"><b>📈 Trading Guru</b><span class="mu">🔴 Live ${tm(S.ci)} · Din ${S.day}</span></div><div class="row sp" style="margin:8px 0"><div><div class="mu">Equity</div><b style="font-size:22px">₹${f(e)}</b></div><div style="text-align:right"><div class="mu">Aaj ka P&amp;L</div><b class="${dp>=0?"up":"dn"}">${dp>=0?"+":""}₹${f(dp)}</b></div></div>${rows}</div>${location.hash=="#widget"?"":`<div class="card"><b>Home screen par lagao</b><p class="mu">Home screen par khali jagah long-press karo → <b>Widgets</b> → <b>Trading Guru</b>. Widget me Live market ka last equity, P&amp;L aur prices dikhte hain.</p></div>`}`}
+let ch=[{r:"t",h:"Namaste! 👋 Main tumhara trading tutor hu. Koi bhi sawal puchho, ya <b>Quiz</b> dabao to main tumse sawal puchhunga."}],tq=-1,tb=0,qs=0,qn=0;
+const KW=[["stock","share","demand","supply","invest","market kya"],["candle","wick","doji","ohlc"],["trend","support","resistance","sideways"],["risk","quantity"," qty","position size","capital"],["stop loss"," sl ","reward"," rr ","target","stoploss"],["rsi","moving average"," ma ","indicator","overbought"],["psychology","revenge","emotion","fomo","overtrading","lalach","gussa"],["order","limit","brokerage","charges","slippage","margin"],["volume","breakout","pattern","double","neckline"],["plan","journal","checklist","max loss","discipline"]];
+const esc=t=>t.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+function tAns(q){const t=" "+q.toLowerCase()+" ";let b=-1,m=0;KW.forEach((a,i)=>{const n=a.filter(w=>t.includes(w)).length;if(n>m){m=n;b=i}});return b<0?"Ye mere lessons me nahi mila. Aise puchho: candlestick, stop loss, risk, RSI, volume, trend ya psychology.":"<b>"+L[b].t+"</b><br>"+L[b].b}
+async function tAsk(){const e=$("#ti"),q=e.value.trim();if(!q||tb)return;ch.push({r:"u",h:esc(q)});tb=1;render();let a;
+try{const sm=await claude.use("sample");if(!sm)throw 0;const r=await sm([{role:"user",content:"Tum ek friendly trading tutor ho (Hinglish, Roman Hindi), beginners ke liye paper-trading app me. Max 120 words, ek chhota example do, financial advice nahi. Sawal: "+q}],{cache:false});a=esc(r.text).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/\n/g,"<br>")}catch(x){a=tAns(q)}
+ch.push({r:"t",h:a});tb=0;render();$("#ti").focus()}
+function tQz(){tq=Math.random()*L.length|0;ch.push({r:"t",h:"🎯 Sawal: <b>"+L[tq].q+"</b>"});render()}
+function tPk(i){const x=L[tq],ok=i==x.a;ch.push({r:"u",h:x.o[i]});qn++;if(ok)qs++;ch.push({r:"t",h:(ok?"✅ Sahi!":"❌ Galat. Sahi jawab: <b>"+x.o[x.a]+"</b>")+" <span class=\"mu\">Score "+qs+"/"+qn+"</span><br><br>"+x.b});tq=-1;render()}
+function tTp(i){ch.push({r:"u",h:L[i].t},{r:"t",h:L[i].b});tq=-1;render()}
+function vTut(){return `<h1>🎓 Tutor</h1><div class="card">${ch.map(m=>`<div style="margin:8px 0;text-align:${m.r=="u"?"right":"left"}"><span style="display:inline-block;max-width:92%;padding:8px 12px;border-radius:12px;text-align:left;background:${m.r=="u"?"var(--ac)":"var(--bg)"};color:${m.r=="u"?"#fff":"var(--tx)"}">${m.h}</span></div>`).join("")}${tb?'<div class="mu">Tutor soch raha hai…</div>':""}${tq>=0?L[tq].o.map((o,i)=>`<button class="opt" onclick="tPk(${i})">${o}</button>`).join(""):""}</div><div class="row chips"><button onclick="tQz()">🎯 Quiz</button>${L.map((x,i)=>`<button onclick="tTp(${i})" style="white-space:nowrap">${x.t}</button>`).join("")}</div><div class="row" style="margin-top:8px;flex-wrap:nowrap"><div style="flex:1"><input id="ti" placeholder="Apna sawal likho…" onkeydown="if(event.key=='Enter')tAsk()"></div><button class="p" onclick="tAsk()">Bhejo</button></div>`}
+addEventListener("resize",()=>{if(tab=="trade"||tab=="live")draw()});
+if(location.hash=="#widget"){document.querySelector("nav").style.display="none";nv("wg")}else render();
+</script>
+</body>
+</html>
